@@ -19,11 +19,6 @@ import {Toaster} from 'react-hot-toast'
 
 const App = () => {
 
-   const {getToken} = useAuth()
-   useEffect(()=>{
-     getToken().then((token)=>console.log(token))
-   }, [])
-
    
 
   return (
