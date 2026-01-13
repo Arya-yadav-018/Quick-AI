@@ -1,19 +1,50 @@
 import { Edit, Sparkle } from 'lucide-react'
 import React, { useState } from 'react'
+import axios from 'axios'
+import { useAuth } from '@clerk/clerk-react';
+import toast from 'react-hot-toast';
+import Markdown from 'react-markdown';
+
+axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
 
 const WriteArticle = () => {
    
   const articleLength = [
-       {length : 800, text : 'Short (500-800 words)'},
-       {length : 1200, text : 'Medium (800-1200 words)'},
-       {length : 1600, text : 'Long (1200+ words)'},
+       {length : 800, text : 'short (500-800 words)'},
+       {length : 1200, text : 'medium (800-1200 words)'},
+       {length : 1600, text : 'long (1200+ words)'},
   ]
 
   const[selectedLength , setSelectedLength] = useState(articleLength[0])
   const [input , setInput] = useState('')
 
+  const[loading , setLoading] = useState(false)
+  const[content , setContent] = useState('')
+
+  const {getToken} = useAuth()
+
   const onSubmitHandler = async(e)=>{
      e.preventDefault();
+     try{
+
+      setLoading(true);
+      
+      const {data} = await axios.post('/api/ai/generate-article' , {articleTopic: input,
+     articleLength: selectedLength.text.split(" ")[0].toLowerCase()
+      }, {
+        headers: {Authorization: `Bearer ${await getToken()}`},
+      })
+       
+      if(data.success){
+        setContent(data.article)
+      }else{
+        toast.error(data.message)
+      }
+
+     }catch(error){
+        toast.error(error.message)
+     }
+     setLoading(false)
   }
 
   return (
@@ -40,8 +71,13 @@ const WriteArticle = () => {
           </div>
           <br/>
 
-          <button className='w-full flex justify-center items-center gap-2 bg-gradient-to-r from-[#226BFF] to-[#65ADFF] text-white px-4 py-2 mt-6 text-sm rounded-lg cursor-pointer hover:scale-95'>
-            <Edit className='w-5' />
+          <button
+          disabled={loading}
+           className='w-full flex justify-center items-center gap-2 bg-gradient-to-r from-[#226BFF] to-[#65ADFF] text-white px-4 py-2 mt-6 text-sm rounded-lg cursor-pointer hover:scale-95'>
+           {
+            loading ? <span className='w-4 h-4 my-1 rounded-full border-2 border-t-transparent animate-spin'></span>
+            : <Edit className='w-5' />
+           }
             Generate arcticle
           </button>
 
@@ -49,19 +85,29 @@ const WriteArticle = () => {
 
      {/* right col  */}
 
-     <div className='w-full max-w-lg p-4 bg-white rounded-lg flex flex-col border border-gray-200 min-h-96 max-h-[600px]'>
+     <div className='w-full max-w-lg p-4 bg-white rounded-lg flex flex-col border border-gray-200 min-h-96 max-h-[600px] overflow-y-auto'>
 
       <div className='flex items-center gap-3'>
         <Edit className='w-5 h-5 text-[#4A7AFF]' />
         <h1 className='text-xl font-semibold '>Generated article</h1>
       </div>
 
-       <div className='flex-1 flex justify-center items-center'>
+      {!content ? (
+        <div className='flex-1 flex justify-center items-center'>
           <div className='text-sm flex flex-col items-center gap-5 text-gray-400'>
              <Edit className='w-9 h-9' />
              <p>Enter a topic and click "Generate article" to get started</p>
           </div>
        </div> 
+      ) : (
+        <div className='mt-3 h-full overflow-y-scroll text-sm text-slate-600'>
+         <div className='.reset-tw'>
+           <Markdown>{content}</Markdown>
+         </div>
+        </div>
+      )}
+
+      
 
      </div>
     
